@@ -1,3 +1,4 @@
+from collections import deque
 import time
 #f = open("day14test.txt", "r")
 f = open("day14input.txt", "r")
@@ -37,7 +38,7 @@ for line in Lines:
 initX = 500
 initY = 0
 draw = False
-def dropSand(part) -> bool:
+def dropSand() -> bool:
     if draw:
         time.sleep(0.3)
         for i in range(20):
@@ -56,21 +57,33 @@ def dropSand(part) -> bool:
             curX += 1
             curY += 1
         else: break
-    if part == 1 and curY == maxY - 1: return False
-    elif part == 2 and curX == initX and curY == initY: return False
+    if curY == maxY - 1: return False
     M[curY][curX] = 'O'
     return True
+
+def pourSand() -> int:
+    cnt = 0
+    q = deque([[initX,initY]])
+    while q:
+        curX,curY = q.popleft()
+        if M[curY][curX] == 'O': continue
+        M[curY][curX] = 'O'
+        cnt += 1
+        if curY == maxY - 1: continue
+        if M[curY + 1][curX] == empty: q.append([curX,curY + 1])
+        if 0 <= curX - 1 and M[curY + 1][curX - 1] == empty: q.append([curX - 1,curY + 1])
+        if curX + 1 < maxX and M[curY + 1][curX + 1] == empty: q.append([curX + 1,curY + 1])
+    return cnt
+    
 def part1():
     cnt = 0
-    while dropSand(1):
+    while dropSand():
         cnt += 1
     print('part1:',cnt)
     return cnt
 
 def part2(p1):
-    cnt = 0
-    while dropSand(2):
-        cnt += 1
+    cnt = pourSand()
     print('part2:',cnt + p1)
 
 p1 = part1()
