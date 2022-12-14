@@ -38,28 +38,20 @@ for line in Lines:
 initX = 500
 initY = 0
 draw = False
-def dropSand() -> bool:
-    if draw:
-        time.sleep(0.3)
-        for i in range(20):
-            print()
-        for m in M:
-            print(m[480:520])
-    curX = initX
-    curY = initY
-    while curY < maxY - 1:
-        if M[curY + 1][curX] == empty:
-            curY += 1
-        elif 0 <= curX - 1 and M[curY + 1][curX - 1] == empty:
-            curX -= 1
-            curY += 1
-        elif curX + 1 < maxX and M[curY + 1][curX + 1] == empty:
-            curX += 1
-            curY += 1
-        else: break
-    if curY == maxY - 1: return False
-    M[curY][curX] = 'O'
-    return True
+def dropSand(x,y) -> list[int,bool]:
+    if y == maxY - 1: return [0,False]
+    if x < 0 or x == maxX: return [0,False]
+    if M[y][x] != empty: return [0,True]
+    left, down, right = [0,False], [0,False], [0,False]
+    down = dropSand(x,y+1)
+    if down[1]:
+        left = dropSand(x-1,y+1)
+    if left[1]:
+        right = dropSand(x+1,y+1)
+    if left[1] and down[1] and right[1]:
+        M[y][x] = 'O'
+        return [left[0] + down[0] + right[0] + 1,True]
+    return [left[0] + down[0] + right[0],False]
 
 def pourSand() -> int:
     cnt = 0
@@ -76,9 +68,7 @@ def pourSand() -> int:
     return cnt
     
 def part1():
-    cnt = 0
-    while dropSand():
-        cnt += 1
+    cnt = dropSand(initX,initY)[0]
     print('part1:',cnt)
     return cnt
 
