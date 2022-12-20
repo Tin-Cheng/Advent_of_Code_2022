@@ -25,13 +25,13 @@ def CheckBuiltable(remainTime,blueprint,Robots,Resources):
         return BuiltRobots,UsedResources
     #assume max one per day
     maxResource = [0,0,0]
-    maxResource[0] = (blueprint[3][0] * (Robots[3]+1) + blueprint[2][0] * (Robots[2]+1)) // (Robots[0] + 1) + 1
-    maxResource[1] = (blueprint[2][1] * (Robots[2]+1) // (Robots[1]+1)) + 1
-    maxResource[2] = (blueprint[3][1] * (Robots[3]+1) // (Robots[2]+1)) + 1
+    maxResource[0] = blueprint[3][0] * (Robots[3]+3) + blueprint[2][0] * (Robots[2]+3) - (Robots[0] * remainTime)
+    maxResource[1] = blueprint[2][1] * (Robots[2]+3) - (Robots[1] * remainTime)
+    maxResource[2] = blueprint[3][1] * (Robots[3]+3) - (Robots[2] * remainTime)
     been = set()
     been.add("0,0,0,0")
     #for i in range(4):
-    for i in [2,3]:
+    for i in [3,2,1,0]:
         curResource = [r for r in Resources]
         curRobots = [0,0,0,0]
         usedResource = [0,0,0,0]
@@ -80,13 +80,13 @@ def Part1Simulation(blueprint):
         current = q.pop()
         #print(current)
         time,Robots,Resources = current
-        beenRobots = ",".join([str(r) for r in Robots])
-        beenResources = ",".join([str(r) for r in Resources])
-        prev = been.get((time, beenRobots, beenResources), [[-1,-1,-1,-1],[-1,-1,-1,-1]])
+        #beenRobots = ",".join([str(r) for r in Robots])
+        #beenResources = ",".join([str(r) for r in Resources])
+        #prev = been.get((time, beenRobots, beenResources), [[-1,-1,-1,-1],[-1,-1,-1,-1]])
         #if prev[0][2] >= Robots[2] and prev[0][3] >= Robots[3] and prev[1][2] >=Resources[2] and prev[1][3] >=Resources[3]:
         #    continue
 
-        been[(time, beenRobots, beenResources)] = [Robots,Resources]
+        #been[(time, beenRobots, beenResources)] = [Robots,Resources]
 
         if time == targetMinutes:
             if best < Resources[3]:
