@@ -1,119 +1,104 @@
 from collections import deque
 import datetime
-f = open("day19test.txt", "r")
-#f = open("day19input.txt", "r")
+
+# f = open("day19test.txt", "r")
+f = open("day19input.txt", "r")
 s = f.read().splitlines()
 
 Blueprints = []
 for line in s:
-    A = (line.replace("Blueprint ","")
-    .replace(": Each ore robot costs","")
-    .replace(" ore. Each clay robot costs","")
-    .replace(" ore. Each obsidian robot costs","")
-    .replace(" ore and","")
-    .replace(" ore and","")
-    .replace(" clay. Each geode robot costs","")
-    .replace(" ore and ","")
-    .replace(" obsidian.","")
-    .split(" ")
-    )
-    Blueprints.append([int(A[1]),int(A[2]),[int(A[3]),int(A[4])],[int(A[5]),int(A[6])]])
+    A = [int(txt) for txt in line.split() if txt.isdigit()]
+    Blueprints.append(
+        [int(A[0]), int(A[1]), [int(A[2]), int(A[3])], [int(A[4]), int(A[5])]])
 
-def CheckBuiltable(remainTime,blueprint,Robots,Resources):
-    BuiltRobots,UsedResources = [[0,0,0,0]],[[0,0,0,0]]
-    if remainTime == 0: 
-        return BuiltRobots,UsedResources
-    #assume max one per day
-    maxResource = [0,0,0]
-    maxResource[0] = blueprint[3][0] * (Robots[3]+3) + blueprint[2][0] * (Robots[2]+3) - (Robots[0] * remainTime)
-    maxResource[1] = blueprint[2][1] * (Robots[2]+3) - (Robots[1] * remainTime)
-    maxResource[2] = blueprint[3][1] * (Robots[3]+3) - (Robots[2] * remainTime)
-    been = set()
-    been.add("0,0,0,0")
-    #for i in range(4):
-    for i in [3,2,1,0]:
-        curResource = [r for r in Resources]
-        curRobots = [0,0,0,0]
-        usedResource = [0,0,0,0]
-        for j in range(4):
-            k = (i+j) % 4
-            if k <= 1:
-                if k == 0 and Resources[0] >= maxResource[0]: continue
-                if k == 1 and Resources[1] >= maxResource[1]: continue
-                Creatable = curResource[0] // blueprint[k]
-                curRobots[k] += Creatable
-                curResource[0] -= Creatable * blueprint[k]
-                usedResource[0] += Creatable * blueprint[k]
-            elif k == 2:
-                if Resources[2] >= maxResource[2]: continue
-                Creatable = min(curResource[0] // blueprint[k][0],curResource[1] // blueprint[k][1])
-                curRobots[k] += Creatable
-                curResource[0] -= Creatable * blueprint[k][0]
-                curResource[1] -= Creatable * blueprint[k][1]
-                usedResource[0] += Creatable * blueprint[k][0]
-                usedResource[1] += Creatable * blueprint[k][1]
-            elif k == 3:
-                Creatable = min(curResource[0] // blueprint[k][0],curResource[2] // blueprint[k][1])
-                curRobots[k] += Creatable
-                curResource[0] -= Creatable * blueprint[k][0]
-                curResource[2] -= Creatable * blueprint[k][1]
-                usedResource[0] += Creatable * blueprint[k][0]
-                usedResource[2] += Creatable * blueprint[k][1]
-        check = ",".join([str(r) for r in curRobots])
-        if check not in been:
-            BuiltRobots.append(curRobots)
-            UsedResources.append(usedResource)
-            been.add(check)
-    return BuiltRobots,UsedResources
 
-def Part1Simulation(blueprint):
-    targetMinutes = 24
-    #ore,clay,obsidian,geode
-    StartRobots = [1,0,0,0]
-    StartResources = [0,0,0,0]
+def CheckBuiltable(blueprint, Robots, Resources):
+    BuiltRobots, UsedResources = [], []
+    # assume max one per day
+    maxResource = [False, False]
+    # never create if have enough supply
+    maxResource[0] = max(max(blueprint[0], blueprint[1]), max(
+        blueprint[2][0], blueprint[3][0])) == Robots[0]
+    maxResource[1] = (blueprint[2][1] == Robots[1]) or (
+        Resources[1] > blueprint[2][1] * 2)
+
+    if Resources[0] >= blueprint[3][0] and Resources[2] >= blueprint[3][1]:
+        BuiltRobots.append([0, 0, 0, 1])
+        UsedResources.append([blueprint[3][0], 0, blueprint[3][1], 0])
+        return BuiltRobots, UsedResources
+
+    canBuild2 = Resources[0] >= blueprint[2][0] and Resources[1] >= blueprint[2][1]
+    if canBuild2:
+        BuiltRobots.append([0, 0, 1, 0])
+        UsedResources.append([blueprint[2][0], blueprint[2][1], 0, 0])
+
+    if not canBuild2 and (Resources[0] < blueprint[0] * 2 and Resources[0] < blueprint[1] * 2):
+        BuiltRobots.append([0, 0, 0, 0])
+        UsedResources.append([0, 0, 0, 0])
+
+    if not maxResource[1] and Resources[0] >= blueprint[1]:
+        BuiltRobots.append([0, 1, 0, 0])
+        UsedResources.append([blueprint[1], 0, 0, 0])
+
+    if not maxResource[0] and Resources[0] >= blueprint[0]:
+        BuiltRobots.append([1, 0, 0, 0])
+        UsedResources.append([blueprint[0], 0, 0, 0])
+
+    if len(BuiltRobots) == 0 and not canBuild2 and (Resources[0] < blueprint[0] * 2 and Resources[0] < blueprint[1] * 2):
+        BuiltRobots.append([0, 0, 0, 0])
+        UsedResources.append([0, 0, 0, 0])
+    return BuiltRobots, UsedResources
+
+
+def Simulation(blueprint, part):
+    targetMinutes = 24 if part == 1 else 32
+    # ore,clay,obsidian,geode
+    StartRobots = [1, 0, 0, 0]
+    StartResources = [0, 0, 0, 0]
     best = 0
-    finalRobots = StartRobots
-    finalResource = StartResources
-    q = [(0,StartRobots,StartResources)]
+    q = deque([(0, StartRobots, StartResources,)])
     been = {}
     while q:
         current = q.pop()
-        #print(current)
-        time,Robots,Resources = current
-        #beenRobots = ",".join([str(r) for r in Robots])
-        #beenResources = ",".join([str(r) for r in Resources])
-        #prev = been.get((time, beenRobots, beenResources), [[-1,-1,-1,-1],[-1,-1,-1,-1]])
-        #if prev[0][2] >= Robots[2] and prev[0][3] >= Robots[3] and prev[1][2] >=Resources[2] and prev[1][3] >=Resources[3]:
-        #    continue
-
-        #been[(time, beenRobots, beenResources)] = [Robots,Resources]
-
+        time, Robots, Resources = current
+        prev = been.get(time, 0)
+        if prev > Resources[3] + time * Robots[3] + (time-1)*(time)//2:
+            continue
+        been[time] = Resources[3]
         if time == targetMinutes:
             if best < Resources[3]:
                 best = Resources[3]
-                finalRobots = [r for r in Robots]
-                finalResource = [r for r in Resources]
-            #print(current)
             continue
 
-        BuiltRobots,UsedResources = CheckBuiltable(targetMinutes-time,blueprint,Robots,Resources)
-        
-        for i,v in enumerate(Robots):
+        BuiltRobots, UsedResources = CheckBuiltable(
+            blueprint, Robots, Resources)
+
+        for i, v in enumerate(Robots):
             Resources[i] += v
-        for newRobot,UsedResource in zip(BuiltRobots,UsedResources):
-            CopyResource = [r for r in Resources]
+
+        for newRobot, UsedResource in zip(BuiltRobots, UsedResources):
+            CopyResources = [r for r in Resources]
+            CopyRobots = [r for r in Robots]
             for i in range(4):
-                newRobot[i] += Robots[i]
-                CopyResource[i] -= UsedResource[i]
-            #print('append',time+1,newRobot,CopyResource)
-            q.append([time+1,newRobot,CopyResource])
-    print(best,finalRobots,finalResource)
+                CopyRobots[i] += newRobot[i]
+                CopyResources[i] -= UsedResource[i]
+            q.append([time+1, CopyRobots, CopyResources])
+
+        for i in range(time+1, targetMinutes+1):
+            been[time+i] = max(been.get(time+i, 0),
+                               Resources[3] + Robots[3] * (i+1))
     return best
-p1 = 0
-for i,blueprint in enumerate(Blueprints):
-    print(datetime.datetime.now(),i,blueprint)
-    ans = Part1Simulation(blueprint)
-    p1 += (i+1) * ans
-    print(i,ans)
-print(datetime.datetime.now())
-print("part1:",p1)
+
+
+result1 = 0
+print(datetime.datetime.now(), "Start")
+for i, blueprint in enumerate(Blueprints):
+    print(datetime.datetime.now(), i, Blueprints[i])
+    result1 += (i+1) * Simulation(Blueprints[i], 1)
+print(datetime.datetime.now(), "part1:", result1)
+
+result2 = 1
+for i in range(min(len(Blueprints), 3)):
+    print(datetime.datetime.now(), i, Blueprints[i])
+    result2 *= Simulation(Blueprints[i], 2)
+print(datetime.datetime.now(), "part2:", result2)
