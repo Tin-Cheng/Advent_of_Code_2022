@@ -2,13 +2,13 @@ import time
 from collections import deque
 #f = open("day24test.txt","r")
 f = open("day24input.txt", "r")
-
 file = f.read().splitlines()
-BlizzardsX = set()
-BlizzardsY = set()
+
+BlizzardsY,BlizzardsX = set(), set()
 startY,startX = 0,1
 endY,endX = len(file)-1,len(file[0])-2
 height, width = endY - startY - 1, endX - startX + 1
+
 for y,line in enumerate(file):
     for x,c in enumerate(line):
         if c == ">":
@@ -26,49 +26,33 @@ for y,line in enumerate(file):
 
 def SimulationBFS(BlizzardsY,BlizzardsX,startY,startX,endY,endX,part):
     q = deque([[startY,startX,0]])
-    #not going to simulate as blizzards are in cycles, not in use
-    def MoveBlizzards(Blizzards):
-        newBlizzards = set()
-        for y,x,dire in Blizzards:
-            if dire == 0:
-                x = startX if x == endX else x + 1
-                newBlizzards.add((y,x,dire))
-            elif dire == 2:
-                x = endX if x == startX else x - 1
-                newBlizzards.add((y,x,dire))
-            elif dire == 1:
-                y = startY + 1 if y == endY - 1 else y + 1
-                newBlizzards.add((y,x,dire))
-            elif dire == 3:
-                y = endY - 1 if y == startY + 1 else y - 1
-                newBlizzards.add((y,x,dire))
-        return newBlizzards
     been = set()
     part2token = 0
     while q:
         curY,curX,time = q.popleft()
+        time = time + 1
         if (curY,curX,time) in been: continue
         been.add((curY,curX,time))
         for dy,dx in [[0,1],[0,-1],[1,0],[-1,0],[0,0]]:
             ny, nx = curY + dy, curX + dx
             if ny == endY and nx == endX: 
-                if part == 1: return time + 1
+                if part == 1: return time
                 if part == 2 and part2token == 0:
-                    q = deque([[ny,nx,time+1]])
-                    print("end part2 ",part2token, " on ", time + 1)
+                    q = deque([[ny,nx,time]])
+                    print("end part2 ",part2token, " on ", time)
                     part2token = 1
                     break
                 if part == 2 and part2token == 2:
-                    print("end part2 ",part2token, " on ", time + 1)
-                    return time + 1
-            if part2token == 1 and part == 2 and ny == startY and nx == startX:
-                q = deque([[ny,nx,time+1]])
-                print("end part2 ",part2token, " on ", time + 1)
+                    print("end part2 ",part2token, " on ", time)
+                    return time
+            if ny == startY and nx == startX and part2token == 1 and part == 2:
+                q = deque([[ny,nx,time]])
+                print("end part2 ",part2token, " on ", time)
                 part2token = 2
                 break
             if ny > endY or ny < startY or nx > endX or nx < startX or (ny == startY and nx != startX) or (ny == endY and nx != endX): continue
-            if(ny,nx,(time+1) % width) in BlizzardsX or (ny,nx,(time+1) % height) in BlizzardsY: continue
-            q.append((ny,nx,time+1))
+            if(ny,nx,(time) % width) in BlizzardsX or (ny,nx,(time) % height) in BlizzardsY: continue
+            q.append((ny,nx,time))
     return -1
 
 start = time.time()
